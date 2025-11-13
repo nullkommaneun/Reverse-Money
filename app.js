@@ -22,38 +22,62 @@ const worker = Tesseract.createWorker({
 
 async function init() {
     try {
-        // 1. Kamera starten (Rückkamera bevorzugen)
+        // 1. Kamera starten
+        statusDiv.innerText = "Suche Kamera...";
+        
+        // Flexiblere Constraints: 'environment' (hinten) bevorzugen,
+        // aber auf 'user' (vorne) zurückfallen, wenn nicht anders verfügbar.
         const constraints = {
             video: {
-                facingMode: 'environment' 
+                facingMode: { ideal: 'environment' } 
             }
         };
         
         currentStream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = currentStream;
         
-        statusDiv.innerText = "Bereit zum Scannen";
+        statusDiv.innerText = "Lade Erkennungs-Modell..."; // Neuer Status
 
-        // Worker initialisieren
+        // Worker initialisieren (das kann dauern)
         await worker.load();
         await worker.loadLanguage('eng'); // Englisch liest Zahlen oft am besten
         await worker.initialize('eng');
         
+        statusDiv.innerText = "Bereit zum Scannen";
+        
     } catch (err) {
         console.error("Fehler:", err);
-        statusDiv.innerText = "Kamera-Fehler: " + err.message;
+        // Detailliertere Fehlermeldung
+        if (err.name === "NotAllowedError") {
+             statusDiv.innerText = "Kamera-Zugriff verweigert!";
+        } else if (err.name === "NotFoundError") {
+             statusDiv.innerText = "Keine Kamera gefunden.";
+        } else {
+             statusDiv.innerText = "Kamera-Fehler: " + err.message;
+        }
     }
 }
 
 // Wichtig: Canvas Größe an Video anpassen
 video.addEventListener('loadedmetadata', () => {
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    // Sicherstellen, dass die Abmessungen gültig sind
+    if (video.videoWidth > 0 && video.videoHeight > 0) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+    }
 });
 
 // Der Kern-Algorithmus
 async function scanAndConvert() {
-    if (!video.srcObject) return;
+    if (!video.srcObject) {
+        statusDiv.innerText = "Kamera nicht bereit.";
+        return;
+    }
+    
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+         statusDiv.innerText = "Kamera-Stream noch nicht initialisiert.";
+         return;
+    }
 
     scanBtn.classList.add('loading');
     statusDiv.innerText = "Analysiere Bild...";
@@ -67,9 +91,7 @@ async function scanAndConvert() {
         // OCR durchführen
         const { data: { text, words } } = await worker.recognize(canvas);
         
-        // Canvas leeren und Video weiterspielen lassen (AR Effekt)
-        // Wenn wir das Bild "einfrieren" wollen, lassen wir drawImage oben.
-        // Für AR Overlay löschen wir das Canvas und malen nur die Boxen.
+        // Canvas leeren, damit das Live-Video wieder sichtbar ist
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         console.log("Erkannter Text:", text);
@@ -78,8 +100,12 @@ async function scanAndConvert() {
 
         words.forEach(word => {
             // Einfacher Regex um Preise zu finden (z.B. $10.99, 10.99, 10,99)
-            const priceRegex = /[\$\£\€]?\s?(\d+[.,]?\d*)/;
+            // Verbessert, um Symbole besser zu trennen
+            const priceRegex = /[\$\£\€]?\s?(\d+([.,]\d{1,2})?)/;
             const match = word.text.match(priceRegex);
+            
+            // Debugging: Zeige, was Tesseract erkennt
+            console.log(`Wort: '${word.text}', Match:`, match);
 
             if (match && match[1]) {
                 // Zahl bereinigen (Komma zu Punkt)
@@ -105,6 +131,13 @@ async function scanAndConvert() {
     }
 
     scanBtn.classList.remove('loading');
+    
+    // Nach 3 Sekunden die Statusmeldung zurücksetzen
+    setTimeout(() => {
+        if(statusDiv.innerText === "Preise konvertiert!" || statusDiv.innerText === "Kein Preis erkannt.") {
+            statusDiv.innerText = "Bereit zum Scannen";
+        }
+    }, 3000);
 }
 
 function drawOverlay(bbox, originalValue) {
@@ -120,16 +153,19 @@ function drawOverlay(bbox, originalValue) {
     const height = y1 - y0;
 
     // 1. Grüner Hintergrund über dem alten Preis
-    ctx.fillStyle = "#00C853";
+    ctx.fillStyle = "#00C853"; // Ein helles Grün
     ctx.beginPath();
-    ctx.roundRect(x0 - 5, y0 - 5, width + 10, height + 10, 5);
+    // roundRect ist in manchen Browsern nicht standard, wir nehmen rect
+    ctx.rect(x0 - 5, y0 - 5, width + 10, height + 10);
     ctx.fill();
 
     // 2. Neuer Preis Text
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = `bold ${height}px Arial`;
+    // Schriftgröße an die Höhe der erkannten Box anpassen
+    let fontSize = height * 0.8; 
+    ctx.font = `bold ${fontSize}px Arial`;
     ctx.textAlign = "center";
-    ctx.textBaseline = "middle"; // Vertikale Zentrierung korrigiert
+    ctx.textBaseline = "middle";
     
     // Textposition berechnen
     const centerX = x0 + width / 2;
@@ -142,4 +178,4 @@ scanBtn.addEventListener('click', scanAndConvert);
 
 // Start
 init();
- 
+
