@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AR Währungs-Scanner</title>
+    <link rel="stylesheet" href="style.css">
+    <script src='https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js'></script>
+</head>
+<body>
+
+    <div class="app-container">
+        <video id="video" autoplay playsinline></video>
+        
+        <canvas id="canvas"></canvas>
+
+        <div class="ui-layer">
+            <div class="top-bar">
+                <select id="currency-select">
+                    <option value="EUR">Zu EUR (€)</option>
+                    <option value="USD">Zu USD ($)</option>
+                    <option value="GBP">Zu GBP (£)</option>
+                    <option value="JPY">Zu JPY (¥)</option>
+                </select>
+                <div id="status">Kamera wird geladen...</div>
+            </div>
+
+            <div class="controls">
+                <button id="scan-btn" class="scan-button">SCAN & CONVERT</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
