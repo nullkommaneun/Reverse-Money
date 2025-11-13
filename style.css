@@ -1,0 +1,106 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    background-color: #000;
+    overflow: hidden; /* Kein Scrollen */
+    height: 100vh;
+    width: 100vw;
+}
+
+.app-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+/* Video und Canvas müssen absolut deckungsgleich sein */
+video, canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+canvas {
+    z-index: 2; /* Canvas über Video */
+}
+
+.ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    pointer-events: none; /* Klicks gehen durch, außer auf Buttons */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px;
+}
+
+.top-bar {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    padding: 10px;
+    border-radius: 12px;
+    pointer-events: auto;
+    color: white;
+    text-align: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+select {
+    background: #333;
+    color: white;
+    border: none;
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    padding-bottom: 30px;
+    pointer-events: auto;
+}
+
+.scan-button {
+    background: #007AFF;
+    color: white;
+    border: none;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 12px;
+    box-shadow: 0 4px 15px rgba(0, 122, 255, 0.5);
+    border: 4px solid rgba(255,255,255,0.2);
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.scan-button:active {
+    transform: scale(0.95);
+}
+
+.scan-button.loading {
+    background: #555;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
